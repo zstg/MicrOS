@@ -1,0 +1,7 @@
+output/
+result/
+init.cpio
+*.iso
+.direnv
+result-*
+.vscode
