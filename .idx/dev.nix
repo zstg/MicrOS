@@ -4,9 +4,21 @@
   # Which nixpkgs channel to use.
   channel = "unstable"; # or "unstable"
 
+  services.docker = {
+    enable = true;
+  };
   # Use https://search.nixos.org/packages to find packages
-  packages = [
-    pkgs.sudo
+  packages = with pkgs;[
+    bc
+    autoconf
+    flex
+    bison
+    findutils
+    cpio
+    gcc
+    musl
+    gnumake
+    sudo
     # pkgs.go
     # pkgs.python311
     # pkgs.python311Packages.pip

@@ -11,8 +11,8 @@
     pkgs = nixpkgs.legacyPackages.${system};
 
     linuxSrc = pkgs.fetchurl {
-      url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.13.1.tar.xz";
-      sha256 = "sha256-8BH2yOpHHfGz273R6yYbKckuQzYFA8Pr0AW+7CFVtmo=";
+      url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.10.tar.xz";
+      sha256 = "sha256-SlFuXtdIU3pzy0LsR/u+tt+LEpjoiSwpwOkd55CVspc=";
     };
 
     busyboxSrc = pkgs.fetchurl {

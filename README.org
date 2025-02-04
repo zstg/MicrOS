@@ -11,3 +11,7 @@ Create a flake.nix file that does the following:
   - [X] install simply ash, bash, vi etc (The bare minimum possible tools for busybox)
   - [X] compile a static binary, musl etc - no glibc.
   - [X] use busybox sh as the init system, symlink it to the output directory.
+
+
+* Steps
+src_bash{docker run --rm --privileged -v ./:/data -it ubuntu -- bash ./build.sh}
