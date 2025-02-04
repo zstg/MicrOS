@@ -1,12 +1,13 @@
+#+TITLE: TODO
 Create a flake.nix file that does the following:
 - fetch tarballs of busybox and linux source code
-- configure both. Write changes to the respective .config files located here and read from it (builtins.readFile) in flake.nix.
+- [X] Configure both. Write changes to the respective .config files located here and read from it (builtins.readFile) in flake.nix.
 - in the linux kernel
   - configure initramfs support - but none of the  "Support initial ramdisk/ramfs compressed using ..." options
   - enable printk support
   - enable TTY
   - kernel support for ELF binaries
-- in busybox directory
-  - install simply ash, bash, vi etc (The bare minimum possible tools for busybox)
-  - compile a static binary, musl etc - no glibc.
-  - use busybox sh as the init system, symlink it to the output directory.
+- [X] in busybox directory
+  - [X] install simply ash, bash, vi etc (The bare minimum possible tools for busybox)
+  - [X] compile a static binary, musl etc - no glibc.
+  - [X] use busybox sh as the init system, symlink it to the output directory.
