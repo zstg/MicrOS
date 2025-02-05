@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 sudo rm -rf out/{bin,sbin,usr,init.cpio,image.iso}
-# docker run --rm --privileged -v ./:/data -it ubuntu bash
+docker run --rm --privileged -v ./:/data -it ubuntu bash
+chmod +x /data/out/init
 # bash /data/build.sh
 # command -v apt >/dev/null 2>&1 && \
 apt update && DEBIAN_FRONTEND=noninteractive apt install -y sudo wget xz-utils bzip2 git vim make gcc libncurses-dev flex bison bc cpio libelf-dev libssl-dev syslinux isolinux genisoimage
@@ -22,12 +23,15 @@ make
 make CONFIG_PREFIX=/data/out install 
 cd /data/out/
 rm -f linuxrc
-find . -type f -exec chmod 4777 {} \; # ensure that the busybox binaries are also setuid as root
+find . -type f -exec chmod +sxrw {} \; # ensure that the busybox binaries are also setuid as root
 # sudo chmod +s bin/busybox
-sudo chmod 4777 bin/busybox
+# sudo chmod 4777 bin/busybox
 
+cd /data/out/
+rm -f ../init.cpio && find . | cpio -o -H newc > ../init.cpio
+mv ../init.cpio .
+rm -f linuxrc
 
-rm -f init.cpio && find . | cpio -o -H newc > init.cpio
 cd /data/src/linux-6.12.10/
 make -j $(nproc) isoimage FDARGS="initrd=/init.cpio" FDINITRD=/data/out/init.cpio
 cp /data/src/linux-6.12.10/arch/x86/boot/image.iso /data/out/
