@@ -16,14 +16,14 @@ cp /data/busybox.config /data/src/busybox-1.37.0/.config
 
 cd /data/src/busybox-1.37.0/
 make
-make CONFIG_PREFIX=/data/out/initramfs install # this "splits" the busybox install into individual scripts
-rm /data/out/initramfs/linuxrc
-
-cd /data/out/initramfs/
-echo init | cpio -o -H newc > init.cpio
+# this "splits" the busybox install into individual scripts
+make CONFIG_PREFIX=/data/out/initramfs install 
+cd /data/out/initramfs
+rm linuxrc
+find . -type f -exec chmod +x {} \;
+find . | cpio -o -H newc > init.cpio
 
 cd /data/src/linux-6.12.10/
-# make
 make -j $(nproc) isoimage FDARGS="initrd=/init.cpio" FDINITRD=/data/out/initramfs/init.cpio
 
-docker cp  <container id>:/data/src/linux-6.12.10/arch/x86/boot/image.iso 
+docker cp  <container id>:/data/src/linux-6.12.10/arch/x86/boot/image.iso out/initramfs/
