@@ -20,7 +20,7 @@ make
 make CONFIG_PREFIX=/data/out/initramfs install 
 cd /data/out/initramfs
 rm linuxrc
-find . -type f -exec chmod +x {} \;
+find . -type f -exec chmod +sx {} \; # ensure that the busybox binaries are also setuid as root
 find . | cpio -o -H newc > init.cpio
 
 cd /data/src/linux-6.12.10/
