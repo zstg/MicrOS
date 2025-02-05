@@ -1,5 +1,6 @@
 out/
 result/
+temp/
 init.cpio
 *.iso
 .direnv

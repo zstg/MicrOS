@@ -1,37 +1,23 @@
 #!/usr/bin/env bash
-sudo rm -rf out/{bin,sbin,usr,init.cpio,image.iso}
-docker run --rm --privileged -v ./:/data -it ubuntu bash
-chmod +x /data/out/init
-# bash /data/build.sh
-# command -v apt >/dev/null 2>&1 && \
-apt update && DEBIAN_FRONTEND=noninteractive apt install -y sudo wget xz-utils bzip2 git vim make gcc libncurses-dev flex bison bc cpio libelf-dev libssl-dev syslinux isolinux genisoimage
+sudo apt update 
+DEBIAN_FRONTEND=noninteractive sudo apt install -y sudo rsync wget xz-utils file bzip2 git vim make gcc libncurses-dev flex bison bc cpio libelf-dev libssl-dev syslinux isolinux genisoimage g++ make libncurses-dev unzip bc bzip2 libelf-dev libssl-dev extlinux
+cd src/
+wget https://buildroot.org/downloads/buildroot-2024.02.10.tar.gz
+tar xf buildroot-2024.02.10.tar.gz && rm -f buildroot-2024.02.10.tar.gz
+cd buildroot-2024.02.10/
+# copy buildroot.config to <repo>/.config
+# make menuconfig
+cp kernel.config src/buildroot-2024.02.10/.config
+FORCE_UNSAFE_CONFIGURE=1 make -j $(nproc)
 
-mkdir -p /data/src && cd /data/src/
-
-wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.10.tar.xz
-tar xf linux-6.12.10.tar.xz
-
-wget https://busybox.net/downloads/busybox-1.37.0.tar.bz2
-tar xf busybox-1.37.0.tar.bz2
-
-cp /data/kernel.config /data/src/linux-6.12.10/.config
-cp /data/busybox.config /data/src/busybox-1.37.0/.config
-
-cd /data/src/busybox-1.37.0/
-make
-# this "splits" the busybox install into individual scripts
-make CONFIG_PREFIX=/data/out install 
-cd /data/out/
-rm -f linuxrc
-find . -type f -exec chmod +sxrw {} \; # ensure that the busybox binaries are also setuid as root
-# sudo chmod +s bin/busybox
-# sudo chmod 4777 bin/busybox
-
-cd /data/out/
-rm -f ../init.cpio && find . | cpio -o -H newc > ../init.cpio
-mv ../init.cpio .
-rm -f linuxrc
-
-cd /data/src/linux-6.12.10/
-make -j $(nproc) isoimage FDARGS="initrd=/init.cpio" FDINITRD=/data/out/init.cpio
-cp /data/src/linux-6.12.10/arch/x86/boot/image.iso /data/out/
+cd /workspace/MicrOS/src/buildroot-2024.02.10
+mkdir -p /workspace/MicrOS/distro/temp 
+cp output/images/* /workspace/MicrOS/temp/distro
+cd /workspace/MicrOS/temp/distro
+tar xf rootfs.tar
+rm rootfs.tar
+cd ..
+truncate -s 100MB boot.img
+mkdir mounted
+mkfs boot.img
+sudo mount boot.img mounted/
