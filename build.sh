@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+sudo rm -rf out/{bin,sbin,usr,init.cpio,image.iso}
 # docker run --rm --privileged -v ./:/data -it ubuntu bash
 # bash /data/build.sh
-command -v apt >/dev/null 2>&1 && apt update && DEBIAN_FRONTEND=noninteractive apt install -y sudo wget xz-utils bzip2 git vim make gcc libncurses-dev flex bison bc cpio libelf-dev libssl-dev syslinux isolinux genisoimage
+# command -v apt >/dev/null 2>&1 && \
+apt update && DEBIAN_FRONTEND=noninteractive apt install -y sudo wget xz-utils bzip2 git vim make gcc libncurses-dev flex bison bc cpio libelf-dev libssl-dev syslinux isolinux genisoimage
 
 mkdir -p /data/src && cd /data/src/
 
@@ -17,13 +19,15 @@ cp /data/busybox.config /data/src/busybox-1.37.0/.config
 cd /data/src/busybox-1.37.0/
 make
 # this "splits" the busybox install into individual scripts
-make CONFIG_PREFIX=/data/out/initramfs install 
-cd /data/out/initramfs
+make CONFIG_PREFIX=/data/out install 
+cd /data/out/
 rm -f linuxrc
-find . -type f -exec chmod +sx {} \; # ensure that the busybox binaries are also setuid as root
+find . -type f -exec chmod 4777 {} \; # ensure that the busybox binaries are also setuid as root
+# sudo chmod +s bin/busybox
+sudo chmod 4777 bin/busybox
+
+
 rm -f init.cpio && find . | cpio -o -H newc > init.cpio
-
 cd /data/src/linux-6.12.10/
-make -j $(nproc) isoimage FDARGS="initrd=/init.cpio" FDINITRD=/data/out/initramfs/init.cpio
-
-docker cp  <container id>:/data/src/linux-6.12.10/arch/x86/boot/image.iso out/initramfs/
+make -j $(nproc) isoimage FDARGS="initrd=/init.cpio" FDINITRD=/data/out/init.cpio
+cp /data/src/linux-6.12.10/arch/x86/boot/image.iso /data/out/
