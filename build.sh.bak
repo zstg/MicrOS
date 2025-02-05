@@ -10,9 +10,11 @@ mkdir -p /data/src && cd /data/src/
 
 wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.10.tar.xz
 tar xf linux-6.12.10.tar.xz
+rm -f linux-6.12.10.tar.xz
 
 wget https://busybox.net/downloads/busybox-1.37.0.tar.bz2
 tar xf busybox-1.37.0.tar.bz2
+rm -f busybox-1.37.0.tar.bz2
 
 cp /data/kernel.config /data/src/linux-6.12.10/.config
 cp /data/busybox.config /data/src/busybox-1.37.0/.config
