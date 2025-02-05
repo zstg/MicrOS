@@ -19,9 +19,9 @@ make
 # this "splits" the busybox install into individual scripts
 make CONFIG_PREFIX=/data/out/initramfs install 
 cd /data/out/initramfs
-rm linuxrc
+rm -f linuxrc
 find . -type f -exec chmod +sx {} \; # ensure that the busybox binaries are also setuid as root
-find . | cpio -o -H newc > init.cpio
+rm -f init.cpio && find . | cpio -o -H newc > init.cpio
 
 cd /data/src/linux-6.12.10/
 make -j $(nproc) isoimage FDARGS="initrd=/init.cpio" FDINITRD=/data/out/initramfs/init.cpio
