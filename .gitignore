@@ -1,7 +1,3 @@
-out/
-result/
-temp/
-test/
 init.cpio
 *.iso
 .direnv
@@ -9,3 +5,4 @@ result-*
 .vscode
 src/
 boot
+result
