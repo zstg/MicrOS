@@ -57,20 +57,27 @@
             '';
         };
 
-        createInitramfs = pkgs.writeShellScriptBin "create-initramfs" ''     
-          cd $out/MicrOS/initramfs
-          find . | cpio -o -H newc > ../init.cpio   
-          cd ..
-          dd if=/dev/zero of=boot bs=1M count=50
-          mkfs -t fat boot
-
-          rm -rf m
-          syslinux boot
-          mkdir m
-          mount boot m
-          cp bzImage init.cpio m
-          umount m
-        '';
+        createInitramfs = pkgs.stdenv.mkDerivation {
+          name = "create-initramfs";
+          unpackPhase = ":";
+          dontUnpack = true;
+          dontConfigure = true;
+          dontBuild = true;
+          installPhase = ''
+            cd $out/MicrOS/initramfs
+            find . | cpio -o -H newc > ../init.cpio   
+            cd ..
+            dd if=/dev/zero of=boot bs=1M count=50
+            mkfs -t fat boot
+  
+            rm -rf m
+            syslinux boot
+            mkdir m
+            mount boot m
+            cp bzImage init.cpio m
+            umount m
+          '';
+        };
 
       in {
         packages = {
