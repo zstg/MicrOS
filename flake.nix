@@ -63,13 +63,29 @@
                 cp bzImage init.cpio m/
                 umount m/
 
+                # run `qemu-system-x86_64 boot.img
+                # enter /bzImage -initrd=/init.cpio in the `boot:` prompt
+
           '';
         };
+
+        run-qemu = pkgs.writeShellScriptBin "run-qemu" ''
+      exec ${pkgs.qemu_kvm}/bin/qemu-system-x86_64 \
+        -enable-kvm \
+        -m 2048 \
+        -cpu host \
+        -drive file=${buildBusybox}/MicrOS/boot.img,format=raw \
+        -serial stdio \
+        -monitor stdio \
+        -vnc :0 \
+        "$@"
+    '';
 
       in {
         packages = {
           kernel = buildKernel;
           busybox = buildBusybox;
+          qemu = run-qemu;
         };
 
         devShell = pkgs.mkShell {
@@ -77,19 +93,10 @@
             bc bison flex gcc elfutils ncurses openssl
             syslinux dosfstools vim cpio
           ];
-        };
-
-        apps = {
-          run-vm = {
-            type = "app";
-            program = "${pkgs.writeShellScriptBin "run-vm" ''
-              exec ${pkgs.qemu}/bin/qemu-system-x86_64 \\
-                -kernel ${buildKernel}/boot/bzImage \\
-                -initrd boot.img \\
-                -nographic \\
-                -enable-kvm
-            ''}";
-          };
+          shellHook = ''
+          echo "Custom kernel development environment initialized."
+          echo "Run 'qemu-runner' to start the VM."
+      '';
         };
       }
     );
