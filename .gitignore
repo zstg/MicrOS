@@ -7,5 +7,5 @@ init.cpio
 .direnv
 result-*
 .vscode
-src
+src/
 boot
