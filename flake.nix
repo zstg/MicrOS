@@ -22,7 +22,7 @@
         buildKernel = pkgs.stdenv.mkDerivation {
           name = "custom-linux-kernel";
           src = linuxSrc;
-          nativeBuildInputs = with pkgs; [ bc bison flex gcc elfutils ncurses openssl sudo ];
+          nativeBuildInputs = with pkgs; [ bc bison flex gcc ncurses openssl ];
 
           buildPhase = ''
             cp ${./kernel.config} .config
@@ -37,6 +37,7 @@
 
         buildBusybox = pkgs.stdenv.mkDerivation {
           name = "custom-busybox";
+          nativeBuildInputs = with pkgs; [ elfutils cpio util-linux dosfstools syslinux ];
           unpackPhase = ":";
           dontUnpack = true;
           dontConfigure = true;
@@ -49,28 +50,19 @@
                 #echo -e "#!/bin/sh\n\n/bin/sh" > $out/MicrOS/initramfs/init
                 #chmod +x $out/MicrOS/initramfs/init
                 ln -sf $out/MicrOS/initramfs/bin/sh $out/MicrOS/initramfs/init
-            '';
-        };
 
-        createInitramfs = pkgs.stdenv.mkDerivation {
-          name = "create-initramfs";
-          unpackPhase = ":";
-          dontUnpack = true;
-          dontConfigure = true;
-          dontBuild = true;
-          installPhase = ''
-            cd $out/MicrOS/initramfs
-            find . | cpio -o -H newc > ../init.cpio   
-            cd ..
-            dd if=/dev/zero of=boot bs=1M count=50
-            mkfs -t fat boot
-  
-            rm -rf m
-            syslinux boot
-            mkdir m
-            mount boot m
-            cp bzImage init.cpio m
-            umount m
+                cd $out/MicrOS/initramfs
+                find . | cpio -o -H newc > ../init.cpio   
+                cd ..
+
+                dd if=/dev/zero of=boot.img bs=1M count=50
+                mkfs -t fat boot.img
+                syslinux boot.img
+
+                mount boot.img m/
+                cp bzImage init.cpio m/
+                umount m/
+
           '';
         };
 
@@ -78,13 +70,12 @@
         packages = {
           kernel = buildKernel;
           busybox = buildBusybox;
-          initramfs-tool = createInitramfs;
         };
 
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
             bc bison flex gcc elfutils ncurses openssl
-            syslinux dosfstools vim
+            syslinux dosfstools vim cpio
           ];
         };
 
