@@ -38,44 +38,32 @@
 
         buildBusybox = pkgs.stdenv.mkDerivation {
           name = "custom-busybox";
-          nativeBuildInputs = with pkgs; [ elfutils cpio util-linux dosfstools syslinux ];
-          
+          nativeBuildInputs = with pkgs; [ elfutils cpio util-linux dosfstools syslinux sudo];
           phases = ["installPhase"];
           dontUnpack = true;
           dontConfigure = true;
           dontBuild = true;
-
           installPhase = ''
             mkdir -p $out/MicrOS/initramfs/bin/
-            
             # Create proper directory structure
             mkdir -p $out/MicrOS/initramfs
-            
             # Copy static busybox binaries
             cp -r ${pkgs.pkgsStatic.busybox}/* $out/MicrOS/initramfs/
-            
             # Remove unwanted files
             rm -rf $out/MicrOS/initramfs/{default.script,linuxrc}
-            
             # Create init symlink
             ln -sf $out/MicrOS/initramfs/bin/sh $out/MicrOS/initramfs/init
-            
             # Create initramfs archive
             cd $out/MicrOS/initramfs
             find . | cpio -o -H newc > ../init.cpio
-            
             # Print contents for verification
             cd ..
             dd if=/dev/zero of=boot bs=1M count=50
-
-
             mkfs -t fat boot
             syslinux boot
-
-            mkdir m
-            mount boot m
+            mkdir m # Ensure mount point exists
+            sudo mount ./boot/ m 
           '';
-
           meta.description = "Custom BusyBox-based initramfs creation";
         };
 
