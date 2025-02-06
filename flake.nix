@@ -1,63 +1,51 @@
 {
-  description = "A minimal Linux kernel and BusyBox system.";
+  description = "Linux kernel compilation environment";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs }:
-  let
-    system = "x86_64-linux";
-    pkgs = nixpkgs.legacyPackages.${system};
+  outputs = { self, nixpkgs, utils }: 
+    utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        
+        # Define source tarballs
+        linuxSrc = pkgs.fetchTarball {
+          url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.75.tar.xz";
+          sha256 = "17pad7pbkx1d32qp54xqfqadixxlnrf9r997lgnh68nzkd2yyvfn"; # "${nix-prefetch-url --unpack "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.75.tar.xz"}";
+        };
 
-    linuxSrc = pkgs.fetchurl {
-      url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.10.tar.xz";
-      sha256 = "sha256-SlFuXtdIU3pzy0LsR/u+tt+LEpjoiSwpwOkd55CVspc=";
-    };
+        busyboxSrc = pkgs.fetchTarball {
+          url = "https://busybox.net/downloads/busybox-1.37.0.tar.bz2";
+          sha256 = "19gs46585jr98ghqnnh6blr748zj3phc71yxfbzpsl869mqn2cdl";
+        };
 
-    busyboxSrc = pkgs.fetchurl {
-      url = "https://busybox.net/downloads/busybox-1.36.1.tar.bz2";
-      sha256 = "sha256-uMwkyVdNgJ5yecO+NJeVxdXOtv3xnKcJ+AzeUOR94xQ=";
-    };
+      in {
+        packages.default = pkgs.callPackage ./default.nix {
+          inherit linuxSrc busyboxSrc;
+        };
 
-    kernel = pkgs.stdenv.mkDerivation {
-      name = "linux-6.13";
-      src = linuxSrc;
-      buildInputs = with pkgs; [ bc autoconf flex bison ];
-      configurePhase = "cp ${./kernel.config} .config";
-      buildPhase = "make isoimage FDARGS=\"initrd=/init.cpio\" FDINITRD=../output/init.cpio";
-      installPhase = "mkdir -p $out";
-    };
-
-    busybox = pkgs.stdenv.mkDerivation {
-      name = "busybox-1.36.1";
-      src = busyboxSrc;
-      nativeBuildInputs = with pkgs; [ findutils cpio ];
-      buildInputs = with pkgs; [ gcc musl gnumake ];
-
-      configurePhase = "cp ${./busybox.config} .config";
-      buildPhase = "make";
-      installPhase = ''
-        mkdir -p $out/output
-        cp busybox $out/output/
-        cd $out/output
-        find . | cpio -H newc -o > init.cpio
-      '';
-    };
-
-  in {
-    packages.${system} = {
-      default = pkgs.buildEnv {
-        name = "MicrOS";
-        paths = [
-          busybox
-          kernel
-        ];
-      };
-
-      busybox = busybox;
-      linux = kernel;
-
-    };
-  };
+        devShell = pkgs.mkShell {
+          buildInputs = [
+            pkgs.xz
+            pkgs.wget
+            pkgs.bzip2
+            pkgs.git
+            pkgs.vim
+            pkgs.gnumake
+            pkgs.gcc
+            pkgs.ncurses
+            pkgs.flex
+            pkgs.bison
+            pkgs.bc
+            pkgs.cpio
+            pkgs.elfutils.dev
+            pkgs.openssl.dev
+            pkgs.syslinux
+            pkgs.dosfstools
+          ];
+        };
+      });
 }
