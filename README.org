@@ -5,9 +5,9 @@ wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.75.tar.xz
 tar xf linux-6.6.75.tar.xz
 rm linux-6.6.75.tar.xz
 cd linux-6.6.75/
-make tinyconfig # enable TTY and printk
-mkdir /boot-files
-cp arch/x86/boot/bzImage /boot-files
+make tinyconfig # enable TTY and printk etc.
+mkdir ../boot-files
+cp arch/x86/boot/bzImage ../boot-files
 cd ..
 
 wget https://busybox.net/downloads/busybox-1.37.0.tar.bz2
@@ -20,10 +20,10 @@ make
 no other changes
 
 
-mkdir /boot-files/initramfs
-make CONFIG_PREFIX=/boot-files/initramfs install
+mkdir ../boot-files/initramfs
+make CONFIG_PREFIX=../boot-files/initramfs install
 
-cd /boot-files/initramfs
+cd ../boot-files/initramfs
 
 Add /bin/sh and shebang to init
 
@@ -38,7 +38,7 @@ mkfs -t fat boot
 syslinux boot
 mkdir m
 mount boot m
-cp bZImage init.cpio m
+cp bzImage init.cpio m
 umount m
 
 
