@@ -1,11 +1,11 @@
-docker run --privileged -it ubuntu
+docker run --name baby_penguin --privileged -it ubuntu
 apt update
 apt install -y xz-utils wget bzip2 git vim make gcc libncurses-dev flex bison bc cpio libelf-dev libssl-dev syslinux dosfstools
 wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.75.tar.xz
 tar xf linux-6.6.75.tar.xz
 rm linux-6.6.75.tar.xz
 cd linux-6.6.75/
-make tinyconfig # enable TTY and printk etc.
+make tinyconfig # enable 64-bit kernel (important), TTY and printk, ELF and #!, initramfs/initrd support.
 mkdir ../boot-files
 cp arch/x86/boot/bzImage ../boot-files
 cd ..
@@ -17,6 +17,7 @@ cd busybox-1.37.0/
 # copy config
 make
 - [X] BUILD STATIC binary (no shared libs)
+- turn off all networking utilities
 no other changes
 
 
@@ -35,6 +36,7 @@ cd ..
 dd if=/dev/zero of=boot bs=1M count=50
 mkfs -t fat boot
 
+# rm -rf m
 syslinux boot
 mkdir m
 mount boot m
@@ -46,3 +48,4 @@ On host
 mkdir test && cd test
 docker cp bcd2c389830f:/boot-files/boot .
 qemu-system-x86_64 boot
+/bzImage -initrd=/init.cpio
