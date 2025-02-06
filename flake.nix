@@ -19,11 +19,6 @@
           sha256 = "sha256-99+x+pcWuhOdC0yBYVNYFtQA3qIdWUP1E0SEKbF5ApA=";  # nix-prefetch-url --unpack "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.75.tar.xz"
         };
 
-        busyboxSrc = pkgs.fetchurl {
-          url = "https://busybox.net/downloads/busybox-1.37.0.tar.bz2";
-          sha256 = "sha256-MxHf8y50ZJn03w1d8E1+s5Y4LX4Qi7klDntRm4NwQ6Q=";
-        };
-
         buildKernel = pkgs.stdenv.mkDerivation {
           name = "custom-linux-kernel";
           src = linuxSrc;
