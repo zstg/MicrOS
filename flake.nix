@@ -1,4 +1,5 @@
-{ description = "Custom Linux kernel development environment";
+{
+  description = "Custom Linux kernel development environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -45,38 +46,27 @@
           dontBuild = true;
           installPhase = ''
             mkdir -p $out/MicrOS/initramfs/bin/
-            # Create proper directory structure
-            mkdir -p $out/MicrOS/initramfs
-            # Copy static busybox binaries
             cp -r ${pkgs.pkgsStatic.busybox}/* $out/MicrOS/initramfs/
+
             # Remove unwanted files
             rm -rf $out/MicrOS/initramfs/{default.script,linuxrc}
-            # Create init symlink
+
+            # Use bash as init and generate CPIO archive
             ln -sf $out/MicrOS/initramfs/bin/sh $out/MicrOS/initramfs/init
-            # Create initramfs archive
             cd $out/MicrOS/initramfs
             find . | cpio -o -H newc > ../init.cpio
+
             # Print contents for verification
             cd ..
             dd if=/dev/zero of=boot bs=1M count=50
             mkfs -t fat boot
             syslinux boot
-            mkdir m # Ensure mount point exists
-            sudo mount ./boot/ m 
+            sudo mount --mkdir boot m # mounts don't work inside the chroot?!
           '';
-          meta.description = "Custom BusyBox-based initramfs creation";
         };
 
         run-qemu = pkgs.writeShellScriptBin "run-qemu" ''
-          exec ${pkgs.qemu_kvm}/bin/qemu-system-x86_64 \
-            -enable-kvm \
-            -m 2048 \
-            -cpu host \
-            -drive file=${buildBusybox}/MicrOS/boot,format=raw \
-            -serial stdio \
-            -monitor stdio \
-            -vnc :0 \
-            "$@"
+          exec ${pkgs.qemu_kvm}/bin/qemu-system-x86_64 ${buildBusybox}/MicrOS/boot
         '';
 
       in {
