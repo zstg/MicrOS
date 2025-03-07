@@ -3,14 +3,16 @@ Run this inside a Docker container: `docker run --name baby_penguin --privileged
 ```bash
 apt update
 apt install -y xz-utils wget bzip2 git vim make gcc libncurses-dev flex bison bc cpio libelf-dev libssl-dev syslinux dosfstools
-wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.75.tar.xz
-tar xf linux-6.6.75.tar.xz
-rm linux-6.6.75.tar.xz
-cd linux-6.6.75/
+wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.17.tar.xz
+tar xf linux-6.12.17.tar.xz
+rm linux-6.12.17.tar.xz
+cd linux-6.12.17/
 make tinyconfig # enable 64-bit kernel (important), TTY and printk, ELF and #!, initramfs/initrd support.
-mkdir ../boot-files
-cp arch/x86/boot/bzImage ../boot-files
-cd ..
+mkdir ../output
+docker cp baby_penguin:/linux-6.12.17/arch/x86/boot/bzImage output/
+#cp arch/x86/boot/bzImage ../output
+#cd ..
+
 ```
 ```bash
 wget https://busybox.net/downloads/busybox-1.37.0.tar.bz2
@@ -19,19 +21,17 @@ rm busybox-1.37.0.tar.bz2
 cd busybox-1.37.0/
 # copy config
 make
+docker cp baby_penguin:/busybox-1.37.0/busybox output/
 ```
 - [X] BUILD STATIC binary (no shared libs)
 - turn off all networking utilities
 no other changes
 
 ```bash
-mkdir ../boot-files/initramfs
-make CONFIG_PREFIX=../boot-files/initramfs install
+# Run this on the host
+cd output/
+find . | cpio -o -H newc > init.cpio
 ```
-```bash
-cd ../boot-files/initramfs
-```
-
 Add /bin/sh and shebang to init
 
 ```bash
