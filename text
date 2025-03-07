@@ -1,0 +1,7 @@
+make tinyconfig
+make menuconfig
+RUSTFLAGS="-C target-feature=+crt-static" cargo build --target x86_64-unknown-linux-gnu
+
+Download the musl toolchain
+
+pacman -S musl syslinux cdrkit
