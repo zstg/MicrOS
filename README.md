@@ -1,4 +1,6 @@
-docker run --name baby_penguin --privileged -it ubuntu
+# MicrOS
+Run this inside a Docker container: `docker run --name baby_penguin --privileged -it ubuntu`
+```bash
 apt update
 apt install -y xz-utils wget bzip2 git vim make gcc libncurses-dev flex bison bc cpio libelf-dev libssl-dev syslinux dosfstools
 wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.75.tar.xz
@@ -9,43 +11,52 @@ make tinyconfig # enable 64-bit kernel (important), TTY and printk, ELF and #!, 
 mkdir ../boot-files
 cp arch/x86/boot/bzImage ../boot-files
 cd ..
-
+```
+```bash
 wget https://busybox.net/downloads/busybox-1.37.0.tar.bz2
 tar xf busybox-1.37.0.tar.bz2
 rm busybox-1.37.0.tar.bz2
 cd busybox-1.37.0/
 # copy config
 make
+```
 - [X] BUILD STATIC binary (no shared libs)
 - turn off all networking utilities
 no other changes
 
-
+```bash
 mkdir ../boot-files/initramfs
 make CONFIG_PREFIX=../boot-files/initramfs install
-
+```
+```bash
 cd ../boot-files/initramfs
+```
 
 Add /bin/sh and shebang to init
 
+```bash
 rm linuxrc
 chmod +x init
 find . | cpio -o -H newc > ../init.cpio
 cd ..
+```
 
+```bash
 dd if=/dev/zero of=boot bs=1M count=50
 mkfs -t fat boot
-
+```
+```bash
 # rm -rf m
 syslinux boot
 mkdir m
 mount boot m
 cp bzImage init.cpio m
 umount m
-
+```
 
 On host
+```bash
 mkdir test && cd test
 docker cp bcd2c389830f:/boot-files/boot .
-qemu-system-x86_64 boot
-/bzImage -initrd=/init.cpio
+qemu-system-x86_64 boot /bzImage -initrd=/init.cpio
+```
