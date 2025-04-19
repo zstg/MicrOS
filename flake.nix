@@ -1,13 +1,14 @@
-{ description = "Static BusyBox and Custom Static Kernel";
+{ 
+  description = "MicrOS";
 
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";  # Use the Nixpkgs branch you prefer
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable"; 
 
   outputs = { self, nixpkgs, ... }:
   let
     system = "x86_64-linux";
     pkgs = import nixpkgs { system = system; };
+    
     myConfigFile = ./kernel.config;
-
     kernelSrc = pkgs.fetchurl {
       url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.14.2.tar.xz";
       sha256 = "sha256-xcaCo1TqMZATk1elfTSnnlw3IhrOgjqTjhARa1d6Lhs=";
@@ -44,10 +45,10 @@
 
   in {
     # Build custom kernel and busybox
-    packages."x86_64-linux".customKernel = customKernel;
-    packages."x86_64-linux".staticBusybox = staticBusybox;
+    packages.x86_64-linux.customKernel = customKernel;
+    packages.x86_64-linux.staticBusybox = staticBusybox;
 
     # Default package to build
-    defaultPackage = staticBusybox;
+    # defaultPackage = staticBusybox; # doesn't work
   };
 }
