@@ -11,10 +11,12 @@
     # Kernel config file
     myConfigFile = ./kernel.config;
 
+	kernelVersion = "6.12.7";
+	
     # Kernel source
     kernelSrc = pkgs.fetchurl {
-      url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.14.2.tar.xz";
-      sha256 = "sha256-xcaCo1TqMZATk1elfTSnnlw3IhrOgjqTjhARa1d6Lhs=";
+      url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${kernelVersion}.tar.xz";
+      sha256 = "sha256-94X7ZIoOC2apQ7syKKS27WLJC5hc0ev2naXTjlidoM8=";
     };
 
     # Statically-linked busybox
@@ -22,7 +24,7 @@
 
     # Custom kernel derivation
     customKernel = pkgs.stdenv.mkDerivation {
-      name = "linux-6.14.2-micros";
+      name = "linux-${kernelVersion}-micros";
       src = pkgs.runCommand "unpack-kernel" {} ''
         mkdir -p $out
         tar -xf ${kernelSrc} -C $out --strip-components=1
@@ -102,7 +104,8 @@
         echo "Initramfs: $OUTDIR/initramfs.cpio.gz"
 
         echo "To test:"
-        echo "  qemu-system-x86_64 -kernel $OUTDIR/bzImage -initrd $OUTDIR/initramfs.cpio.gz -nographic"
+        echo "  qemu-system-x86_64 -kernel $OUTDIR/bzImage -initrd $OUTDIR/initramfs.cpio.gz -m 2048"
+        qemu-system-x86_64 -kernel "$OUTDIR"/bzImage -initrd "$OUTDIR"/initramfs.cpio.gz -m 2048
       '';
     };
 
