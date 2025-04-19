@@ -1,5 +1,5 @@
 {
-  description = "MicrOS";
+  description = "MicrOS - Minimal Linux-based OS with custom kernel and busybox";
 
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
@@ -8,86 +8,113 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
 
+    # Kernel config file
     myConfigFile = ./kernel.config;
 
+    # Kernel source
     kernelSrc = pkgs.fetchurl {
       url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.14.2.tar.xz";
       sha256 = "sha256-xcaCo1TqMZATk1elfTSnnlw3IhrOgjqTjhARa1d6Lhs=";
     };
 
+    # Statically-linked busybox
+    staticBusybox = pkgs.busybox.overrideAttrs (old: {
+      enableStatic = true;
+      configureFlags = [ "--disable-shared" ];
+    });
+
+    # Custom kernel derivation
     customKernel = pkgs.stdenv.mkDerivation {
       name = "linux-6.14.2-micros";
       src = pkgs.runCommand "unpack-kernel" {} ''
         mkdir -p $out
         tar -xf ${kernelSrc} -C $out --strip-components=1
       '';
-      nativeBuildInputs = with pkgs; [ ncurses gcc bc perl flex bison openssl pkg-config elfutils xz ];
+
+      nativeBuildInputs = with pkgs; [
+        ncurses gcc bc perl flex bison openssl pkg-config elfutils xz
+      ];
+
       configurePhase = ''
         cp ${myConfigFile} .config
+        # make olddefconfig
       '';
+
       buildPhase = ''
         make -j$(nproc)
       '';
+
       installPhase = ''
         mkdir -p $out
         cp arch/x86/boot/bzImage $out/
       '';
+
       enableParallelBuilding = true;
     };
 
-    staticBusybox = pkgs.busybox.overrideAttrs (old: rec {
-      enableStatic = true;
-      configureFlags = [ "--disable-shared" ];
-    });
+    # Finalize build: create initramfs and copy outputs
+    finaliseBuild = pkgs.writeShellApplication {
+      name = "finaliseBuild";
 
-    finaliseBuild = pkgs.writeShellScriptBin "finaliseBuild" ''
-      #!/usr/bin/env bash
-      set -euo pipefail
+      runtimeInputs = with pkgs; [
+        nix coreutils findutils cpio gzip bash
+      ];
 
-      sudo rm -rf result*
+      text = ''
+        # set -euxo pipefail
 
-      nix build .#customKernel
-      echo "Copying built kernel..."
-      sudo mv ./result ./result-kernel
-      sudo chmod -R 777 ./result-kernel
-      sudo rm -rf result-kernel/result
+        OUTDIR="$PWD/result"
+        rm -rf "$OUTDIR"
+        mkdir -p "$OUTDIR/initramfs"
 
-      nix build .#staticBusybox
-      echo "Copying built busybox..."
-      sudo mv ./result ./result-busybox
-      sudo chmod -R 777 ./result-busybox
-      sudo rm -rf result-busybox/result
+        echo "Building custom kernel..."
+        nix build .#customKernel -o result-kernel
 
-      echo "Finalising build..."
-      cd result-busybox
-      sudo rm -rf default.script linuxrc
+        echo "Building static busybox..."
+        nix build .#staticBusybox -o result-busybox
 
-      echo -e '#!/usr/bin/env bash\n/bin/sh' > ./init
-      chmod +x ./init
-      find . | cpio -o -H newc > ../init.cpio
+        echo "Preparing initramfs contents..."
+        cp -r result-busybox/. "$OUTDIR/initramfs/"
+        echo -e '#!/bin/sh\nmount -t proc proc /proc\nexec /bin/sh' > "$OUTDIR/initramfs/init"
+        chmod +x "$OUTDIR/initramfs/init"
 
-      cd ..
+        echo "Packing initramfs..."
+        pushd "$OUTDIR/initramfs"
+        find . | cpio -o -H newc | gzip > "$OUTDIR/initramfs.cpio.gz"
+        popd
 
-      mkdir -p result/
-      mv result-kernel/bzImage result/
-      mv result-busybox/* result/
+        echo "Copying kernel..."
+        cp result-kernel/bzImage "$OUTDIR/"
 
-      echo "Build complete. bzImage and init.cpio are in ./result"
-    '';
+        echo "Build complete!"
+        echo "Kernel: $OUTDIR/bzImage"
+        echo "Initramfs: $OUTDIR/initramfs.cpio.gz"
+
+        echo "To test:"
+        echo "  qemu-system-x86_64 -kernel $OUTDIR/bzImage -initrd $OUTDIR/initramfs.cpio.gz -nographic"
+      '';
+    };
 
   in {
-    # Modify nix run to trigger the finaliseBuild script
+    # Default: run the finalize script
     defaultPackage.x86_64-linux = finaliseBuild;
 
-    packages.x86_64-linux.customKernel = customKernel;
-    packages.x86_64-linux.staticBusybox = staticBusybox;
+    # Expose components
+    packages.x86_64-linux = {
+      customKernel = customKernel;
+      staticBusybox = staticBusybox;
+      finaliseBuild = finaliseBuild;
+    };
 
-    # Make the finaliseBuild script available in the shell environment
-    shellHook = ''
-      export PATH=$PATH:${self.packages.x86_64-linux.finaliseBuild}/bin
-    '';
+    # Make the finalize script available as an app
+    apps.x86_64-linux.finaliseBuild = {
+      type = "app";
+      program = "${finaliseBuild}/bin/finaliseBuild";
+    };
 
-    # Define the finaliseBuild as an app to be run
-    apps.x86_64-linux.finaliseBuild = finaliseBuild;
+    # Add finaliseBuild to shell env
+    devShells.x86_64-linux.default = pkgs.mkShell {
+      packages = [ finaliseBuild ];
+    };
   };
 }
