@@ -18,10 +18,7 @@
     };
 
     # Statically-linked busybox
-    staticBusybox = pkgs.busybox.overrideAttrs (old: {
-      enableStatic = true;
-      configureFlags = [ "--disable-shared" ];
-    });
+    staticBusybox = pkgs.pkgsStatic.busybox;
 
     # Custom kernel derivation
     customKernel = pkgs.stdenv.mkDerivation {
@@ -61,7 +58,6 @@
       ];
 
       text = ''
-        # set -euxo pipefail
 
         OUTDIR="$PWD/result"
         rm -rf "$OUTDIR"
@@ -74,7 +70,22 @@
         nix build .#staticBusybox -o result-busybox
 
         echo "Preparing initramfs contents..."
-        cp -r result-busybox/. "$OUTDIR/initramfs/"
+        # Ensure directories exist in initramfs
+        mkdir -p "$OUTDIR/initramfs/bin"
+        mkdir -p "$OUTDIR/initramfs/sbin"
+        mkdir -p "$OUTDIR/initramfs/dev"
+        mkdir -p "$OUTDIR/initramfs/proc"
+        mkdir -p "$OUTDIR/initramfs/sys"
+
+        # Copy the busybox binary
+        cp result-busybox/bin/* "$OUTDIR/initramfs/bin/"
+
+        # Create symlinks to busybox for common commands
+        # cd "$OUTDIR/initramfs/bin"
+        #for cmd in sh ls cp mv rm cat mkdir; do
+        #    ln -s busybox $cmd
+        #done
+
         echo -e '#!/bin/sh\nmount -t proc proc /proc\nexec /bin/sh' > "$OUTDIR/initramfs/init"
         chmod +x "$OUTDIR/initramfs/init"
 
