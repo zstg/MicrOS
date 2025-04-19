@@ -20,8 +20,9 @@ sudo rm -rf default.script linuxrc
 echo -e '#!/usr/bin/env bash\n/bin/sh' > ./init
 chmod +x ./init
 find . | cpio -o -H newc > ../init.cpio
+cd ..
 
-# mkdir -p result/
+mkdir -p result/
 mv result-kernel/bzImage result/
 mv result-busybox/* result/
 

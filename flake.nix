@@ -66,16 +66,28 @@
       chmod +x ./init
       find . | cpio -o -H newc > ../init.cpio
 
+      cd ..
+
       mkdir -p result/
-      mv ../result-kernel/bzImage result/
-      mv ./* result/
+      mv result-kernel/bzImage result/
+      mv result-busybox/* result/
 
       echo "Build complete. bzImage and init.cpio are in ./result"
     '';
 
   in {
+    # Modify nix run to trigger the finaliseBuild script
+    defaultPackage.x86_64-linux = finaliseBuild;
+
     packages.x86_64-linux.customKernel = customKernel;
     packages.x86_64-linux.staticBusybox = staticBusybox;
+
+    # Make the finaliseBuild script available in the shell environment
+    shellHook = ''
+      export PATH=$PATH:${self.packages.x86_64-linux.finaliseBuild}/bin
+    '';
+
+    # Define the finaliseBuild as an app to be run
     apps.x86_64-linux.finaliseBuild = finaliseBuild;
   };
 }
