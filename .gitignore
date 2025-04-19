@@ -5,7 +5,7 @@ result-*
 .vscode
 src/
 boot
-result
+result/
 out/
 linux-*
 m/
