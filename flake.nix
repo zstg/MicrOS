@@ -40,38 +40,38 @@
       configureFlags = [ "--disable-shared" ];
     });
 
-    finaliseBuild = pkgs.writeShellScript "finaliseBuild" ''
-        #!/usr/bin/env bash
-        set -euo pipefail
+    finaliseBuild = pkgs.writeShellScriptBin "finaliseBuild" ''
+      #!/usr/bin/env bash
+      set -euo pipefail
 
-        sudo rm -rf result*
+      sudo rm -rf result*
 
-        nix build .#customKernel
-        echo "Copying built kernel..."
-        sudo mv ./result ./result-kernel
-        sudo chmod -R 777 ./result-kernel
-        sudo rm -rf result-kernel/result
+      nix build .#customKernel
+      echo "Copying built kernel..."
+      sudo mv ./result ./result-kernel
+      sudo chmod -R 777 ./result-kernel
+      sudo rm -rf result-kernel/result
 
-        nix build .#staticBusybox
-        echo "Copying built busybox..."
-        sudo mv ./result ./result-busybox
-        sudo chmod -R 777 ./result-busybox
-        sudo rm -rf result-busybox/result
+      nix build .#staticBusybox
+      echo "Copying built busybox..."
+      sudo mv ./result ./result-busybox
+      sudo chmod -R 777 ./result-busybox
+      sudo rm -rf result-busybox/result
 
-        echo "Finalising build..."
-        cd result-busybox
-        sudo rm -rf default.script linuxrc
+      echo "Finalising build..."
+      cd result-busybox
+      sudo rm -rf default.script linuxrc
 
-        echo -e '#!/usr/bin/env bash\n/bin/sh' > ./init
-        chmod +x ./init
-        find . | cpio -o -H newc > ../init.cpio
+      echo -e '#!/usr/bin/env bash\n/bin/sh' > ./init
+      chmod +x ./init
+      find . | cpio -o -H newc > ../init.cpio
 
-        mkdir -p result/
-        mv ../result-kernel/bzImage result/
-        mv ./* result/
+      mkdir -p result/
+      mv ../result-kernel/bzImage result/
+      mv ./* result/
 
-        echo "Build complete. bzImage and init.cpio are in ./result"
-      '';
+      echo "Build complete. bzImage and init.cpio are in ./result"
+    '';
 
   in {
     packages.x86_64-linux.customKernel = customKernel;
