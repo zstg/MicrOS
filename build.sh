@@ -27,12 +27,11 @@ mv result-kernel/bzImage result/
 mv result-busybox/* result/
 
 ###########
-# dd if=/dev/zero of=boot bs=1M count=50
-# mkfs -t fat boot
-# rm -rf m
-# syslinux boot
-# mkdir m
-# mount boot m
-# cp bzImage init.cpio m
-# umount m
+# sudo dd if=/dev/zero of=boot bs=1M count=50
+# sudo mkfs -t fat boot # needs dosfstools on Ubuntu
+# sudo syslinux boot # needs syslinux on Ubuntu
+# rm -rf m && mkdir m
+# sudo mount boot m
+# sudo cp bzImage init.cpio m
+# sudo umount m
 #######
