@@ -6,13 +6,35 @@
   let
     system = "x86_64-linux";
     pkgs = import nixpkgs { system = system; };
-    customKernel = pkgs.linux_latest.overrideAttrs (old: rec {
-      kernelPatches = [
-        # Add any custom patches here if needed
-      ];
-      kernelConfig = ./kernel.config;
-      configureFlags = [ "--enable-static" "--disable-modules" ];
-    });
+    myConfigFile = ./kernel.config;
+
+    kernelSrc = pkgs.fetchurl {
+      url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.14.2.tar.xz";
+      sha256 = "sha256-xcaCo1TqMZATk1elfTSnnlw3IhrOgjqTjhARa1d6Lhs=";
+    };
+    customKernel = pkgs.stdenv.mkDerivation {
+      name = "linux-6.14.2-micros";
+      src = pkgs.runCommand "unpack-kernel" {} ''
+        mkdir -p $out
+        tar -xf ${kernelSrc} -C $out --strip-components=1
+      '';
+      nativeBuildInputs = with pkgs; [ ncurses gcc bc perl flex bison openssl pkg-config elfutils xz ];
+      configurePhase = ''
+        cp ${myConfigFile} .config
+        # make olddefconfig
+      '';
+
+      buildPhase = ''
+        make -j$(nproc)
+      '';
+
+      installPhase = ''
+        mkdir -p $out
+        cp arch/x86/boot/bzImage $out/
+      '';
+
+      enableParallelBuilding = true;
+    };
 
     # Build static busybox
     staticBusybox = pkgs.busybox.overrideAttrs (old: rec {
