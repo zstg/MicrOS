@@ -93,6 +93,7 @@
 
         echo "Packing initramfs..."
         pushd "$OUTDIR/initramfs"
+        find "$OUTDIR"/initramfs/bin -type f -exec chmod +x {} \;
         find . | cpio -o -H newc | gzip > "$OUTDIR/initramfs.cpio.gz"
         popd
 
