@@ -8,21 +8,17 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
 
-    # Kernel config file
     myConfigFile = ./kernel.config;
 
 	kernelVersion = "6.12.7";
 	
-    # Kernel source
     kernelSrc = pkgs.fetchurl {
       url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${kernelVersion}.tar.xz";
       sha256 = "sha256-94X7ZIoOC2apQ7syKKS27WLJC5hc0ev2naXTjlidoM8=";
     };
 
-    # Statically-linked busybox
     staticBusybox = pkgs.pkgsStatic.busybox;
 
-    # Custom kernel derivation
     customKernel = pkgs.stdenv.mkDerivation {
       name = "linux-${kernelVersion}-micros";
       src = pkgs.runCommand "unpack-kernel" {} ''
@@ -36,7 +32,6 @@
 
       configurePhase = ''
         cp ${myConfigFile} .config
-        # make olddefconfig
       '';
 
       buildPhase = ''
@@ -51,7 +46,6 @@
       enableParallelBuilding = true;
     };
 
-    # Finalize build: create initramfs and copy outputs
     finaliseBuild = pkgs.writeShellApplication {
       name = "finaliseBuild";
 
@@ -72,30 +66,22 @@
         nix build .#staticBusybox -o result-busybox
 
         echo "Preparing initramfs contents..."
-        # Ensure directories exist in initramfs
         mkdir -p "$OUTDIR/initramfs/bin"
         mkdir -p "$OUTDIR/initramfs/sbin"
         mkdir -p "$OUTDIR/initramfs/dev"
         mkdir -p "$OUTDIR/initramfs/proc"
         mkdir -p "$OUTDIR/initramfs/sys"
 
-        # Copy the busybox binary
         cp result-busybox/bin/* "$OUTDIR/initramfs/bin/"
-
-        # Create symlinks to busybox for common commands
-        # cd "$OUTDIR/initramfs/bin"
-        #for cmd in sh ls cp mv rm cat mkdir; do
-        #    ln -s busybox $cmd
-        #done
 
         echo -e '#!/bin/sh\nmount -t proc proc /proc\nexec /bin/sh' > "$OUTDIR/initramfs/init"
         chmod +x "$OUTDIR/initramfs/init"
 
         echo "Packing initramfs..."
-        pushd "$OUTDIR/initramfs"
+        cd "$OUTDIR/initramfs"
         find "$OUTDIR"/initramfs/bin -type f -exec chmod +x {} \;
         find . | cpio -o -H newc | gzip > "$OUTDIR/initramfs.cpio.gz"
-        popd
+        cd -
 
         echo "Copying kernel..."
         cp result-kernel/bzImage "$OUTDIR/"
@@ -104,8 +90,7 @@
         echo "Kernel: $OUTDIR/bzImage"
         echo "Initramfs: $OUTDIR/initramfs.cpio.gz"
 
-        echo "To test:"
-        echo "  qemu-system-x86_64 -kernel $OUTDIR/bzImage -initrd $OUTDIR/initramfs.cpio.gz -m 2048"
+        echo "Testing: qemu-system-x86_64 -kernel $OUTDIR/bzImage -initrd $OUTDIR/initramfs.cpio.gz -m 2048"
         qemu-system-x86_64 -kernel "$OUTDIR"/bzImage -initrd "$OUTDIR"/initramfs.cpio.gz -m 2048
       '';
     };
@@ -127,7 +112,6 @@
       program = "${finaliseBuild}/bin/finaliseBuild";
     };
 
-    # Add finaliseBuild to shell env
     devShells.x86_64-linux.default = pkgs.mkShell {
       packages = [ finaliseBuild ];
     };
