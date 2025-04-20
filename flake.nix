@@ -9,9 +9,9 @@
     pkgs = import nixpkgs { inherit system; };
 
     myConfigFile = ./kernel.config;
+    srccode = ./test.c;
+    kernelVersion = "6.12.7";
 
-	kernelVersion = "6.12.7";
-	
     kernelSrc = pkgs.fetchurl {
       url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${kernelVersion}.tar.xz";
       sha256 = "sha256-94X7ZIoOC2apQ7syKKS27WLJC5hc0ev2naXTjlidoM8=";
@@ -46,6 +46,26 @@
       enableParallelBuilding = true;
     };
 
+    myStaticApp = pkgs.pkgsStatic.stdenv.mkDerivation {
+      pname = "my-static-app";
+      version = "1.0";
+
+      buildInputs = [ pkgs.musl ];
+
+      configurePhase = ''
+        cp ${srccode} hello.c
+      '';
+      buildPhase = ''
+        ${pkgs.musl}/bin/musl-gcc -static hello.c -o hello
+      '';
+
+      installPhase = ''
+        mkdir -p $out/bin
+        cp hello $out/bin/
+      '';
+      enableParallelBuilding = true;
+    };
+
     finaliseBuild = pkgs.writeShellApplication {
       name = "finaliseBuild";
 
@@ -54,7 +74,6 @@
       ];
 
       text = ''
-
         OUTDIR="$PWD/result"
         rm -rf "$OUTDIR"
         mkdir -p "$OUTDIR/initramfs"
@@ -65,6 +84,9 @@
         echo "Building static busybox..."
         nix build .#staticBusybox -o result-busybox
 
+        echo "Building static C app..."
+        nix build .#myStaticApp -o result-myapp
+
         echo "Preparing initramfs contents..."
         mkdir -p "$OUTDIR/initramfs/bin"
         mkdir -p "$OUTDIR/initramfs/sbin"
@@ -73,6 +95,7 @@
         mkdir -p "$OUTDIR/initramfs/sys"
 
         cp result-busybox/bin/* "$OUTDIR/initramfs/bin/"
+        cp result-myapp/bin/hello "$OUTDIR/initramfs/bin/"
 
         echo -e '#!/bin/sh\nmount -t proc proc /proc\nexec /bin/sh' > "$OUTDIR/initramfs/init"
         chmod +x "$OUTDIR/initramfs/init"
@@ -96,17 +119,15 @@
     };
 
   in {
-    # Default: run the finalize script
     defaultPackage.x86_64-linux = finaliseBuild;
 
-    # Expose components
     packages.x86_64-linux = {
       customKernel = customKernel;
       staticBusybox = staticBusybox;
+      myStaticApp = myStaticApp;
       finaliseBuild = finaliseBuild;
     };
 
-    # Make the finalize script available as an app
     apps.x86_64-linux.finaliseBuild = {
       type = "app";
       program = "${finaliseBuild}/bin/finaliseBuild";
@@ -117,3 +138,4 @@
     };
   };
 }
+
