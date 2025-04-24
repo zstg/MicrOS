@@ -7,9 +7,8 @@ double train(double x[], double y[], int n) {
     double w = 0.0; // Initial weight
     for (int i = 0; i < ITERATIONS; i++) {
         double gradient = 0.0;
-        for (int j = 0; j < n; j++) {
+        for (int j = 0; j < n; j++)
             gradient += (w * x[j] - y[j]) * x[j];
-        }
         gradient /= n;
         w -= LEARNING_RATE * gradient;
     }
