@@ -9,7 +9,7 @@
     pkgs = import nixpkgs { inherit system; };
 
     myConfigFile = ./kernel.config;
-    srccode = ./test.c;
+    srccode = ./hello.c;
     kernelVersion = "6.12.7";
 
     kernelSrc = pkgs.fetchurl {
@@ -46,25 +46,29 @@
       enableParallelBuilding = true;
     };
 
-    myStaticApp = pkgs.pkgsStatic.stdenv.mkDerivation {
-      pname = "my-static-app";
-      version = "1.0";
+myStaticApp = pkgs.pkgsStatic.stdenv.mkDerivation {
+  pname = "my-static-app";
+  version = "1.0";
 
-      buildInputs = [ pkgs.musl ];
+  src = srccode;
+  nativeBuildInputs = with pkgs;[ musl gcc ];
 
-      configurePhase = ''
-        cp ${srccode} hello.c
-      '';
-      buildPhase = ''
-        ${pkgs.musl}/bin/musl-gcc -static hello.c -o hello
-      '';
+  unpackPhase = ''
+    mkdir source
+    cp ${srccode} source/hello.c
+    cd source
+  '';
 
-      installPhase = ''
-        mkdir -p $out/bin
-        cp hello $out/bin/
-      '';
-      enableParallelBuilding = true;
-    };
+  buildPhase = ''
+    musl-gcc -static hello.c -o hello
+  '';
+
+  installPhase = ''
+    mkdir -p $out/bin
+    cp hello $out/bin/
+  '';
+};
+
 
     finaliseBuild = pkgs.writeShellApplication {
       name = "finaliseBuild";
